@@ -3,6 +3,7 @@ from pathlib import Path
 from ...game import get_installed_mod, get_mods_path, get_state_path
 from ...quarantine import get_local_status
 from ...types import ModProfileType
+from .issues import print_issue_warning
 
 
 def sandmod_status(game_id: int, storage_root: Path, mod_id: int) -> int:
@@ -27,9 +28,14 @@ def sandmod_status(game_id: int, storage_root: Path, mod_id: int) -> int:
     print("Version:", modfile.get("version"))
     print("Path:", mod.get("PathOnDisk"))
     print("State:", mod.get("State"))
-    print(
-        "Local Status:",
-        get_local_status(mod, get_mods_path(game_id, storage_root)),
+    local_status = get_local_status(
+        mod,
+        get_mods_path(game_id, storage_root),
     )
+
+    print("Local Status:", local_status)
+
+    if local_status == "present":
+        print_issue_warning(mod_id, modfile.get("version"))
 
     return 0

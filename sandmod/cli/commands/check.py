@@ -3,6 +3,8 @@ from pathlib import Path
 from ...audit import compare_mods
 from ...game import get_installed_mod, get_mods_path, get_state_path, load_state
 from ...modio import get_mod, get_mods
+from ...quarantine import get_local_status
+from .issues import print_issue_warning
 
 
 def sandmod_check(
@@ -58,6 +60,9 @@ def __sandmod_check_individual(api_key: str, game_id: int, platform: str, storag
         print(f"Installed: {result.installed_version or '-'}")
         print(f"Available: {result.available_version or '-'}")
         print(f"Status: {result.status}")
+
+        if get_local_status(installed, mod_root) == "present":
+            print_issue_warning(result.mod_id, result.installed_version)
 
         # if installed_file_id is None:
         #     print("Status: Unknown local release")
@@ -129,7 +134,7 @@ def __sandmod_check_all(
 
     counts = {}
 
-    for result in results:
+    for mod, result in zip(installed, results):
         counts[result.status] = counts.get(result.status, 0) + 1
 
         print(
@@ -139,6 +144,9 @@ def __sandmod_check_all(
             f"{(result.available_version or '-'):<12} "
             f"{result.status}"
         )
+
+        if get_local_status(mod, mods_root) == "present":
+            print_issue_warning(result.mod_id, result.installed_version)
 
     print(f"\nTotal: {len(results)}")
     for status, count in sorted(counts.items()):

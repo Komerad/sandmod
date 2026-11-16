@@ -89,6 +89,12 @@ def _run() -> int:
     restore.add_argument("mod_id", type=int)
     restore.add_argument("--dry-run", action="store_true")
 
+    issues = commands.add_parser(
+        "issues",
+        help="Show recorded mod compatibility issues",
+    )
+    issues.add_argument("mod_id", type=int, nargs="?")
+
     commands.add_parser(
         "list",
         help="List info about all locally installed mods. (Summary)",
@@ -104,6 +110,9 @@ def _run() -> int:
 
     if args.command == "init":
         return sandmod_commands.init(args.reconfigure, args.reauth)
+
+    if args.command == "issues":
+        return sandmod_commands.issues(args.mod_id)
 
     modio_config, game_config = load_config()
 

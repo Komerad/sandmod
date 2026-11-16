@@ -1,5 +1,6 @@
 from .check import sandmod_check as check
 from .init import sandmod_init as init
+from .issues import sandmod_issues as issues
 from .list import sandmod_list as list
 from .quarantine import sandmod_quarantine as quarantine
 from .quarantine import sandmod_restore as restore

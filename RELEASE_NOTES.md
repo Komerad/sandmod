@@ -1,3 +1,17 @@
+# Sandmod v0.1.0a3
+
+- Add Quarantine/Restore commands for soft-deletion without state edits
+
+### Included
+- SAW Docker compatible build
+
+# Sandmod v0.1.0a2
+
+Quick fix for a SAW compatible build
+
+### Included
+- SAW Docker compatible build
+
 # Sandmod v0.1.0a1
 
 Initial alpha release of Sandmod, a command-line utility for managing Insurgency: Sandstorm mods through mod.io.

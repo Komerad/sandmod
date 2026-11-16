@@ -35,6 +35,10 @@ def __sandmod_check_individual(api_key: str, game_id: int, platform: str, storag
 
     remote = get_mod(game_id, mod_id, api_key, platform)
 
+    if installed is None:
+        print(f"{remote['name']}: Not installed")
+        return 0
+
     mod_root = get_mods_path(game_id, storage_root)
 
     results = compare_mods([installed], {mod_id: remote}, mod_root)

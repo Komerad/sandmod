@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from ...game import get_state_path, load_state
+from ...game import get_mods_path, get_state_path, load_state
+from ...quarantine import get_local_status
 
 
 def sandmod_list(game_id: int, storage_root: Path) -> int:
@@ -11,11 +12,12 @@ def sandmod_list(game_id: int, storage_root: Path) -> int:
         return 1
 
     state = load_state(state_path)
+    mods_root = get_mods_path(game_id, storage_root)
     mods = state.get("Mods", [])
 
     print(f"\nLocally tracked mods: {len(mods)}\n")
-    print(f"{'ID':<12} {'Name':<36} {'Version':<14} {'State'}")
-    print("-" * 75)
+    print(f"{'ID':<12} {'Name':<36} {'Version':<14} {'State':<8} {'Local'}")
+    print("-" * 91)
 
     for mod in mods:
         profile = mod.get("Profile") or {}
@@ -26,6 +28,8 @@ def sandmod_list(game_id: int, storage_root: Path) -> int:
         version = modfile.get("version") or "-"
         install_state = mod.get("State", "-")
 
-        print(f"{mod_id:<12} " f"{name[:35]:<36} " f"{version:<14} " f"{install_state}")
+        local = get_local_status(mod, mods_root)
+
+        print(f"{mod_id:<12} " f"{name[:35]:<36} " f"{version:<14} " f"{str(install_state):<8} " f"{local}")
 
     return 0

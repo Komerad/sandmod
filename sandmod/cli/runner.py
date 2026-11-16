@@ -75,6 +75,20 @@ def _run() -> int:
     update.add_argument("mod_id", type=int)
     update.add_argument("--force", action="store_true")
 
+    quarantine = commands.add_parser(
+        "quarantine",
+        help="Temporarily move an installed mod out of active storage",
+    )
+    quarantine.add_argument("mod_id", type=int)
+    quarantine.add_argument("--dry-run", action="store_true")
+
+    restore = commands.add_parser(
+        "restore",
+        help="Restore a previously quarantined mod",
+    )
+    restore.add_argument("mod_id", type=int)
+    restore.add_argument("--dry-run", action="store_true")
+
     commands.add_parser(
         "list",
         help="List info about all locally installed mods. (Summary)",
@@ -129,6 +143,21 @@ def _run() -> int:
                 game_config.storage_root,
                 args.mod_id,
                 force=args.force,
+            )
+        case "quarantine":
+            return sandmod_commands.quarantine(
+                modio_config.game_id,
+                game_config.storage_root,
+                args.mod_id,
+                dry_run=args.dry_run,
+            )
+
+        case "restore":
+            return sandmod_commands.restore(
+                modio_config.game_id,
+                game_config.storage_root,
+                args.mod_id,
+                dry_run=args.dry_run,
             )
     return 0
 

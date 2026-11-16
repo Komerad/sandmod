@@ -2,13 +2,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from .game import get_installation_health
+from .quarantine import get_local_status
 from .types import ModDictType
 
 AuditStatus = Literal[
     "current",
     "missing",
     "outdated",
+    "quarantined",
     "unknown",
     "unavailable",
     "no_release",
@@ -45,10 +46,14 @@ def compare_mods(
         installed_id = local_file.get("id")
         available_id = remote_file.get("id")
 
-        health = get_installation_health(mod, mods_root)
+        health = get_local_status(mod, mods_root)
+
+        health = get_local_status(mod, mods_root)
 
         if health == "missing":
             status = "missing"
+        elif health == "quarantined":
+            status = "quarantined"
         elif health == "unknown":
             status = "unknown"
         elif remote_mod is None:

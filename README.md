@@ -198,7 +198,7 @@ Portable executables do not require a separate Python installation.
 
 ## License
 
-Copyright (C) 2026 Tthomas63
+Copyright (C) 2026 Komerad
 
 Sandmod is free software licensed under the **GNU General Public License, version 3.0 only (GPL-3.0-only)**.
 

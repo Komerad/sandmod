@@ -5,6 +5,11 @@ A lightweight, cross-platform command-line tool for managing **Insurgency: Sands
 Sandmod provides a way to inspect locally installed mods, compare their versions against active mod.io releases, and safely update existing installations without relying on the game's built-in update process.
 
 
+**Downloads:** [GitHub Releases](https://github.com/Komerad/sandmod/releases)
+
+Sandmod is currently in alpha. Prebuilt executables are available for Windows, Linux, and Debian 12-based SAW environments.
+
+
 ### Features
 
 - **Local inspection:** List installed mods, inspect metadata, and identify missing or quarantined installations.
@@ -86,7 +91,7 @@ Sandmod then looks for the state file at:
 C:\Users\Public\mod.io\254\metadata\state.json
 ```
 
-Successful setup creates `sandmod.toml` in the Sandmod source directory and validates your mod.io credentials.
+Successful setup creates sandmod.toml beside the application: in the repository root when running from source, or beside the executable when using a portable build.
 
 API keys are stored in your operating system's credential store when available. Alternatively, Sandmod can use the `MODIO_API_KEY` environment variable or, with your permission, a local `.env` file.
 

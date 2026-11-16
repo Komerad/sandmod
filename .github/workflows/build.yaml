@@ -73,11 +73,15 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Compress-Archive -Path dist/sandmod.exe -DestinationPath sandmod-windows-x64.zip
+          Compress-Archive `
+          -Path dist/sandmod.exe, LICENSE, README.md `
+          -DestinationPath sandmod-windows-x64.zip
 
       - name: Package Linux executable
         if: runner.os == 'Linux'
-        run: tar -czf sandmod-linux-x64.tar.gz -C dist sandmod
+        run: mkdir -p release-package
+          cp dist/sandmod LICENSE README.md release-package/
+          tar -czf sandmod-linux-x64.tar.gz -C release-package .
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
@@ -137,7 +141,9 @@ jobs:
           ./dist/sandmod --help
 
       - name: Package SAW executable
-        run: tar -czf sandmod-linux-saw-x64.tar.gz -C dist sandmod
+        run: mkdir -p release-package
+          cp dist/sandmod LICENSE README.md release-package/
+          tar -czf sandmod-linux-saw-x64.tar.gz -C release-package .
 
       - name: Upload SAW artifact
         uses: actions/upload-artifact@v7

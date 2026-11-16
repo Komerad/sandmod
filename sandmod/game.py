@@ -59,31 +59,3 @@ def get_installation_health(
         return "missing"
 
     return "present"
-
-
-# def get_installation_health(
-#     mod: ModDictType,
-#     mods_root: Path,
-# ) -> InstallationHealth:
-
-#     if mod.get("ID") == 4278920:
-#         print("DEBUG State:", repr(mod.get("State")))
-#         print("DEBUG ID:", repr(mod.get("ID")))
-#         print("DEBUG mods_root:", mods_root)
-#         print("DEBUG directory:", mods_root / str(mod["ID"]))
-#         print("DEBUG exists:", (mods_root / str(mod["ID"])).is_dir())
-
-#     if mod.get("State") != 1:
-#         return "unknown"
-
-#     mod_id = mod.get("ID")
-
-#     if not isinstance(mod_id, int):
-#         return "unknown"
-
-#     path = mods_root / str(mod_id)
-
-#     if not path.is_dir():
-#         return "missing"
-
-#     return "present"

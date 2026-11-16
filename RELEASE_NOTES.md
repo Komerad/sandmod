@@ -1,3 +1,19 @@
+# Sandmod v0.1.0a4
+
+Maintenance release following the initial public alpha.
+
+### Fixed
+- Include license and documentation in portable release archives.
+- Handle missing/null modfile metadata in the `status` command.
+- Correct README configuration-path documentation.
+
+### Maintenance
+- Remove redundant installation-status checks.
+- Clean up obsolete commented-out implementation code.
+
+### Notes
+- No changes to mod installation, quarantine, or restore behavior.
+- Subscription management and bulk cleanup remain planned features.
 
 # Sandmod v0.1.0a3
 
@@ -41,3 +57,23 @@ Quarantining Mud Village on the affected client resolved both reproduced crashes
 This is alpha software. Back up important mod installations before modifying them.
 
 Please include the operating system, command, relevant output, and reproduction steps when reporting a problem.
+
+# Sandmod v0.1.0a1
+
+Initial alpha release of Sandmod, a command-line utility for managing Insurgency: Sandstorm mods through mod.io.
+
+### Included
+- Interactive configuration and mod.io authentication
+- Local mod listing and inspection
+- Remote version checking
+- Verified mod downloads and archive extraction
+- Staged installation updates with rollback and recovery safeguards
+- Windows and Linux executables
+
+### Known limitations
+- Updates existing registered mods only
+- No bulk updates, fresh installation, or GUI
+- Stop the game/server before modifying installations
+- Windows and Linux compatibility testing is ongoing
+
+**Alpha software:** Back up your installations before testing. Please report reproducible failures with the platform, command, and relevant error output.

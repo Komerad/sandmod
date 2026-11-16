@@ -48,8 +48,6 @@ def compare_mods(
 
         health = get_local_status(mod, mods_root)
 
-        health = get_local_status(mod, mods_root)
-
         if health == "missing":
             status = "missing"
         elif health == "quarantined":

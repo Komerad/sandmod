@@ -19,8 +19,8 @@ def sandmod_status(game_id: int, storage_root: Path, mod_id: int) -> int:
         print(f"Mod {mod_id} not found")
         return 1
 
-    profile: ModProfileType = mod.get("Profile", {})
-    modfile = profile.get("modfile", {})
+    profile: ModProfileType = mod.get("Profile") or {}
+    modfile = profile.get("modfile") or {}
 
     print("Mod ID:", mod.get("ID"))
     print("Name:", profile.get("name"))

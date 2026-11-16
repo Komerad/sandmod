@@ -79,7 +79,8 @@ jobs:
 
       - name: Package Linux executable
         if: runner.os == 'Linux'
-        run: mkdir -p release-package
+        run: |
+          mkdir -p release-package
           cp dist/sandmod LICENSE README.md release-package/
           tar -czf sandmod-linux-x64.tar.gz -C release-package .
 
@@ -141,7 +142,8 @@ jobs:
           ./dist/sandmod --help
 
       - name: Package SAW executable
-        run: mkdir -p release-package
+        run: |
+          mkdir -p release-package
           cp dist/sandmod LICENSE README.md release-package/
           tar -czf sandmod-linux-saw-x64.tar.gz -C release-package .
 

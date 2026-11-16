@@ -11,6 +11,7 @@ permissions:
   contents: read
 
 jobs:
+  # Windows and modern Linux builds
   build:
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -47,11 +48,7 @@ jobs:
         run: |
           expected="${GITHUB_REF_NAME#v}"
           actual="$(python -c 'import sandmod; print(sandmod.__version__)')"
-
-          if [[ "$actual" != "$expected" ]]; then
-            echo "Version mismatch: tag=$expected, application=$actual"
-            exit 1
-          fi
+          test "$actual" = "$expected"
 
       - name: Build executable
         run: python -m PyInstaller --clean --noconfirm --onefile --name sandmod sandmod_entry.py
@@ -60,11 +57,11 @@ jobs:
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            dist/sandmod.exe --version
-            dist/sandmod.exe --help
+            ./dist/sandmod.exe --version
+            ./dist/sandmod.exe --help
           else
-            dist/sandmod --version
-            dist/sandmod --help
+            ./dist/sandmod --version
+            ./dist/sandmod --help
           fi
 
       - name: Package Windows executable
@@ -85,10 +82,66 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # SAW-compatible Linux build
+  build-saw:
+    name: Build (SAW / Debian 12)
+    runs-on: ubuntu-latest
+
+    container:
+      image: python:3.13-bookworm
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Install build tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends binutils
+
+      - name: Verify glibc baseline
+        run: |
+          getconf GNU_LIBC_VERSION
+          test "$(getconf GNU_LIBC_VERSION)" = "glibc 2.36"
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt pyinstaller
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Validate release version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          expected="${GITHUB_REF_NAME#v}"
+          actual="$(python -c 'import sandmod; print(sandmod.__version__)')"
+          test "$actual" = "$expected"
+
+      - name: Build executable
+        run: python -m PyInstaller --clean --noconfirm --onefile --name sandmod sandmod_entry.py
+
+      - name: Smoke test executable
+        run: |
+          ./dist/sandmod --version
+          ./dist/sandmod --help
+
+      - name: Package SAW executable
+        run: tar -czf sandmod-linux-saw-x64.tar.gz -C dist sandmod
+
+      - name: Upload SAW artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: sandmod-linux-saw
+          path: sandmod-linux-saw-x64.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  # Publish all three binaries on version tags
   release:
     name: Publish pre-release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    needs: [build, build-saw]
     runs-on: ubuntu-latest
 
     permissions:
@@ -105,6 +158,12 @@ jobs:
           path: release-assets
           merge-multiple: true
 
+      - name: Verify release assets
+        run: |
+          test -f release-assets/sandmod-windows-x64.zip
+          test -f release-assets/sandmod-linux-x64.tar.gz
+          test -f release-assets/sandmod-linux-saw-x64.tar.gz
+
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -112,6 +171,7 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             release-assets/sandmod-windows-x64.zip \
             release-assets/sandmod-linux-x64.tar.gz \
+            release-assets/sandmod-linux-saw-x64.tar.gz \
             --verify-tag \
             --prerelease \
             --latest=false \

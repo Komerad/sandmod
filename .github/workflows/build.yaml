@@ -1,0 +1,119 @@
+
+name: Build and Release Sandmod
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: sandmod-windows
+            package: sandmod-windows-x64.zip
+          - os: ubuntu-latest
+            artifact: sandmod-linux
+            package: sandmod-linux-x64.tar.gz
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt pyinstaller
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Validate release version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          expected="${GITHUB_REF_NAME#v}"
+          actual="$(python -c 'import sandmod; print(sandmod.__version__)')"
+
+          if [[ "$actual" != "$expected" ]]; then
+            echo "Version mismatch: tag=$expected, application=$actual"
+            exit 1
+          fi
+
+      - name: Build executable
+        run: python -m PyInstaller --clean --noconfirm --onefile --name sandmod sandmod_entry.py
+
+      - name: Smoke test executable
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            dist/sandmod.exe --version
+            dist/sandmod.exe --help
+          else
+            dist/sandmod --version
+            dist/sandmod --help
+          fi
+
+      - name: Package Windows executable
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/sandmod.exe -DestinationPath sandmod-windows-x64.zip
+
+      - name: Package Linux executable
+        if: runner.os == 'Linux'
+        run: tar -czf sandmod-linux-x64.tar.gz -C dist sandmod
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.package }}
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish pre-release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: sandmod-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            release-assets/sandmod-windows-x64.zip \
+            release-assets/sandmod-linux-x64.tar.gz \
+            --verify-tag \
+            --prerelease \
+            --latest=false \
+            --title "Sandmod $GITHUB_REF_NAME" \
+            --notes-file RELEASE_NOTES.md

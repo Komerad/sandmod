@@ -4,23 +4,29 @@ A lightweight, cross-platform command-line tool for managing **Insurgency: Sands
 
 Sandmod provides a way to inspect locally installed mods, compare their versions against active mod.io releases, and safely update existing installations without relying on the game's built-in update process.
 
+
 ### Features
 
-- **Local inspection:** List installed mods and examine their recorded installation metadata.
-- **Update checking:** Compare installed modfile versions against the active releases for a configured platform.
+- **Local inspection:** List installed mods, inspect metadata, and identify missing or quarantined installations.
+- **Update checking:** Compare locally recorded mod versions against active mod.io releases.
 - **Download validation:** Download, verify, and extract mod archives without installing them.
-- **Safe updates:** Stage replacement files before updating an existing installation, retaining backups when recovery is necessary.
-- **Platform selection:** Support mod.io release selection for Windows, Linux, and their server variants.
+- **Safe updates:** Stage replacements before updating an existing installation, with rollback and recovery safeguards.
+- **Quarantine and restore:** Temporarily remove a mod from active storage and restore it without changing mod.io SDK metadata.
+- **Known compatibility issues:** Identify version-specific problems reported during testing.
+- **Cross-platform builds:** Windows, Linux, and a Debian 12-based build intended for SAW servers.
 
 ### Current limitations
 
-Sandmod is an early CLI alpha with deliberately limited scope.
+Sandmod is an early CLI alpha, not a replacement for the game's mod.io client.
 
-- Updates are supported for existing, registered mod installations only.
-- Fresh mod installation and bulk updating are not implemented.
-- The game and any servers sharing the installation must be stopped before updating.
-- A graphical interface is not yet available.
-- Linux and Windows portable builds require platform-specific validation before being considered verified.
+- Updates support existing, registered installations only.
+- Subscription management, bulk cleanup, and permanent uninstallation are not yet implemented.
+- Quarantine does not unsubscribe a mod or edit mod.io's `state.json`. The game may redownload quarantined content.
+- Update checks compare recorded release metadata; they do not verify the integrity of every installed file.
+- Stop the game and any servers sharing the mod storage before modifying installations.
+- A graphical interface is planned but not available.
+- Portable builds still require testing across different systems.
+
 
 ## Requirements
 
@@ -115,6 +121,12 @@ All commands can be run with `python -m sandmod` from the project directory.
 | `stage <mod_id>` | Download, validate, and extract a release without installing |
 | `update <mod_id>` | Update an existing mod installation |
 | `update <mod_id> --force` | Reinstall even when the recorded release is current |
+| `quarantine <mod_id>` | Move a mod out of active storage, preserving recovery metadata |
+| `quarantine <mod_id> --dry-run` | Preview quarantine without changing files |
+| `restore <mod_id>` | Restore a previously quarantined installation |
+| `restore <mod_id> --dry-run` | Preview restoration |
+| `issues [mod_id]` | Show recorded version-specific compatibility problems |
+
 
 ### Updating a mod
 
@@ -130,3 +142,68 @@ Sandmod downloads and verifies the replacement before requesting confirmation to
 **Important:** Stop the game and any servers using the same mod storage before confirming an update.
 
 The `stage` command is useful for testing downloads and archive validation independently. It removes its temporary files afterward and does not change the installation.
+
+
+### Quarantine and restore
+
+Quarantine temporarily removes a mod from active storage without deleting its files or changing mod.io SDK metadata.
+
+Preview the operation first:
+
+```bash
+python -m sandmod quarantine 448415 --dry-run
+```
+
+Quarantine the installation:
+
+```bash
+python -m sandmod quarantine 448415
+```
+
+Restore it later:
+
+```bash
+python -m sandmod restore 448415
+```
+
+Sandmod records the original installation location and refuses to overwrite an existing destination during restoration.
+
+**Important:** Quarantine does not unsubscribe a mod. Sandstorm may download it again if the mod is still required or subscribed. Both operations require confirmation, and the game or server must be stopped.
+
+### Known compatibility issues
+
+Sandmod includes a small registry of observed compatibility problems.
+
+```bash
+python -m sandmod issues
+python -m sandmod issues 448415
+```
+
+Known issues are matched by mod ID and version. They are informational warnings, not automatic blacklists.
+
+### Portable executables
+
+GitHub Releases provides separate builds for Windows, Linux, and SAW-compatible Linux environments.
+
+For example, with the Windows executable:
+
+```powershell
+.\sandmod.exe --version
+.\sandmod.exe init
+.\sandmod.exe list
+```
+
+Portable executables do not require a separate Python installation.
+
+
+## License
+
+Copyright (C) 2026 Tthomas63
+
+Sandmod is free software licensed under the **GNU General Public License, version 3.0 only (GPL-3.0-only)**.
+
+You are free to use, study, modify, and redistribute Sandmod under the terms of the GPL. Modified versions distributed to others must also comply with the GPL, including its source-code requirements.
+
+See [LICENSE](LICENSE) for the full terms.
+
+Sandmod is an independent community project and is not affiliated with or endorsed by New World Interactive, Focus Entertainment, or mod.io.

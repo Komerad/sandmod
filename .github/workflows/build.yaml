@@ -48,7 +48,12 @@ jobs:
         run: |
           expected="${GITHUB_REF_NAME#v}"
           actual="$(python -c 'import sandmod; print(sandmod.__version__)')"
-          test "$actual" = "$expected"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "::error::Tag version '$expected' does not match package version '$actual'"
+            exit 1
+          fi
+
+          echo "Validated Sandmod $actual"
 
       - name: Build executable
         run: python -m PyInstaller --clean --noconfirm --onefile --name sandmod sandmod_entry.py
@@ -116,7 +121,12 @@ jobs:
         run: |
           expected="${GITHUB_REF_NAME#v}"
           actual="$(python -c 'import sandmod; print(sandmod.__version__)')"
-          test "$actual" = "$expected"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "::error::Tag version '$expected' does not match package version '$actual'"
+            exit 1
+          fi
+
+          echo "Validated Sandmod $actual"
 
       - name: Build executable
         run: python -m PyInstaller --clean --noconfirm --onefile --name sandmod sandmod_entry.py

@@ -6,28 +6,54 @@ import keyring
 from dotenv import dotenv_values, set_key
 from keyring.errors import KeyringError
 
+# ENV
+ACCESS_TOKEN_ENV_KEY = "MODIO_ACCESS_TOKEN"
+API_KEY_ENV_KEY = "MODIO_API_KEY"
+# Keyring
 SERVICE = "sandmod"
-KEY_NAME = "modio_api_key"
+ACCESS_TOKEN_KEY_NAME = "modio_access_token"
+API_KEY_NAME = "modio_api_key"
 
 
-def find_api_key(app_dir: Path) -> tuple[str, str] | None:
-    if key := os.environ.get("MODIO_API_KEY"):
-        return key, "environment"
+def _find_credential(
+    app_dir: Path,
+    env_name: str,
+    key_name: str,
+) -> tuple[str, str] | None:
+    if value := os.environ.get(env_name):
+        return value, "environment"
 
     try:
-        if key := keyring.get_password(SERVICE, KEY_NAME):
-            return key, "keyring"
+        if value := keyring.get_password(SERVICE, key_name):
+            return value, "keyring"
     except KeyringError:
         pass
 
-    if key := dotenv_values(app_dir / ".env").get("MODIO_API_KEY"):
-        return key, "dotenv"
+    if value := dotenv_values(app_dir / ".env").get(env_name):
+        return value, "dotenv"
 
     return None
 
 
+def find_api_key(app_dir: Path) -> tuple[str, str] | None:
+    return _find_credential(app_dir, API_KEY_ENV_KEY, API_KEY_NAME)
+
+
+def find_access_token(app_dir: Path) -> tuple[str, str] | None:
+    return _find_credential(
+        app_dir,
+        ACCESS_TOKEN_ENV_KEY,
+        ACCESS_TOKEN_KEY_NAME,
+    )
+
+
 def get_api_key(app_dir: Path) -> str | None:
     result = find_api_key(app_dir)
+    return result[0] if result else None
+
+
+def get_access_token(app_dir: Path) -> str | None:
+    result = find_access_token(app_dir)
     return result[0] if result else None
 
 
@@ -74,7 +100,7 @@ def save_keyring_api_key(key: str) -> bool:
         raise ValueError("API key cannot be empty")
 
     try:
-        keyring.set_password(SERVICE, KEY_NAME, key)
+        keyring.set_password(SERVICE, API_KEY_NAME, key)
         return True
     except KeyringError:
         return False

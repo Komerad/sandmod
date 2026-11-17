@@ -3,7 +3,7 @@ from dotenv import unset_key
 from keyring.errors import KeyringError
 
 from sandmod.config import get_config_path
-from sandmod.credentials import KEY_NAME, SERVICE
+from sandmod.credentials import API_KEY_NAME, SERVICE
 
 
 def main() -> None:
@@ -29,7 +29,7 @@ def main() -> None:
 
     # OS credential store
     try:
-        keyring.delete_password(SERVICE, KEY_NAME)
+        keyring.delete_password(SERVICE, API_KEY_NAME)
         print("Keyring credential removed.")
     except KeyringError as exc:
         print(f"Keyring could not be cleared: {exc}")

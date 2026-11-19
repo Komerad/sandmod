@@ -104,3 +104,50 @@ def save_keyring_api_key(key: str) -> bool:
         return True
     except KeyringError:
         return False
+
+
+def save_keyring_access_token(token: str) -> bool:
+    if not token.strip():
+        raise ValueError("Access token cannot be empty")
+
+    # Windows Credential Manager limits credential blobs
+    # to 2560 bytes. keyring stores them as UTF-16.
+    if os.name == "nt" and len(token.encode("utf-16-le")) > 2560:
+        return False
+
+    try:
+        keyring.set_password(SERVICE, ACCESS_TOKEN_KEY_NAME, token)
+        return True
+    except KeyringError:
+        return False
+
+
+def save_env_access_token(app_dir: Path, token: str) -> Path:
+    if not token.strip() or "\n" in token or "\r" in token:
+        raise ValueError("Invalid access token")
+
+    path = app_dir / ".env"
+
+    if not path.exists():
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        fd = os.open(path, flags, 0o600)
+
+        with os.fdopen(fd, "w", encoding="utf-8") as file:
+            file.write(f"{ACCESS_TOKEN_ENV_KEY}={json.dumps(token)}\n")
+
+        return path
+
+    if os.name == "posix":
+        path.chmod(0o600)
+
+    set_key(
+        str(path),
+        ACCESS_TOKEN_ENV_KEY,
+        token,
+        quote_mode="always",
+    )
+
+    if os.name == "posix":
+        path.chmod(0o600)
+
+    return path

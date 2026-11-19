@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from sandmod.credentials import get_access_token, get_api_key
+from sandmod.credentials import get_access_token, get_api_key, save_keyring_access_token
 
 
 class AccessTokenCredentialTests(unittest.TestCase):
@@ -48,3 +48,31 @@ class AccessTokenCredentialTests(unittest.TestCase):
                 return_value=None,
             ):
                 self.assertEqual(get_api_key(self.app_dir), "dotenv-key")
+
+    def test_oversized_windows_pat_skips_keyring(self):
+        token = "x" * 1281
+
+        with (
+            patch("sandmod.credentials.os.name", "nt"),
+            patch("sandmod.credentials.keyring.set_password") as save,
+        ):
+            result = save_keyring_access_token(token)
+
+        self.assertFalse(result)
+        save.assert_not_called()
+
+    def test_windows_pat_within_limit_uses_keyring(self):
+        token = "x" * 1280
+
+        with (
+            patch("sandmod.credentials.os.name", "nt"),
+            patch("sandmod.credentials.keyring.set_password") as save,
+        ):
+            result = save_keyring_access_token(token)
+
+        self.assertTrue(result)
+        save.assert_called_once_with(
+            "sandmod",
+            "modio_access_token",
+            token,
+        )

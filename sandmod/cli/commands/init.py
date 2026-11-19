@@ -12,13 +12,16 @@ from ...config import (
     save_config,
 )
 from ...credentials import (
+    find_access_token,
     find_api_key,
     replace_env_api_key,
+    save_env_access_token,
     save_env_api_key,
+    save_keyring_access_token,
     save_keyring_api_key,
 )
 from ...game import get_state_path
-from ...modio import ModIOError, validate_api_key
+from ...modio import ModIOError, validate_access_token, validate_api_key
 
 
 def __print_banner() -> None:
@@ -71,7 +74,7 @@ def ask_yes_no(prompt: str, default: bool = False) -> bool:
         print("Please enter yes or no.")
 
 
-def _configure_credentials(config: ModIOConfig, reauth: bool = False) -> int:
+def _configure_api_key(config: ModIOConfig, reauth: bool = False) -> int:
     app_dir = get_config_path().parent
 
     existing = find_api_key(app_dir)
@@ -170,6 +173,91 @@ def _configure_credentials(config: ModIOConfig, reauth: bool = False) -> int:
     return 0
 
 
+def _configure_access_token(config: ModIOConfig, reauth: bool = False) -> int:
+    app_dir = get_config_path().parent
+    existing = find_access_token(app_dir)
+    source = existing[1] if existing else None
+
+    if existing and not reauth:
+        try:
+            validate_access_token(config.game_id, existing[0])
+        except ModIOError as exc:
+            if exc.status_code not in (401, 403):
+                print(f"Could not verify PAT: {exc}")
+                return 1
+
+            print("Existing Personal Access Token was rejected.")
+
+            if source == "environment":
+                print("Update or unset MODIO_ACCESS_TOKEN.")
+                return 1
+
+            if not ask_yes_no("Replace PAT?", default=True):
+                return 1
+        else:
+            print(f"mod.io PAT verified. Source: {source}")
+            return 0
+
+    elif existing and reauth:
+        if not ask_yes_no("Replace existing PAT?", default=False):
+            return 0
+
+        if source == "environment":
+            print("MODIO_ACCESS_TOKEN is set in the environment.")
+            print("Update or unset it before replacing stored credentials.")
+            return 1
+
+    elif not ask_yes_no(
+        "Configure a mod.io PAT for subscription discovery?",
+        default=False,
+    ):
+        return 0
+
+    while True:
+        print("Create a read-only Personal Access Token at:")
+        print("https://mod.io/me/access")
+
+        token = getpass("mod.io PAT (Enter to cancel): ").strip()
+        if not token:
+            return 1
+
+        try:
+            print("Validating PAT...")
+            validate_access_token(config.game_id, token)
+        except ModIOError as exc:
+            print(f"Validation failed: {exc}")
+
+            if exc.status_code in (401, 403):
+                continue
+
+            return 1
+
+        break
+
+    print("Personal Access Token accepted.")
+
+    if save_keyring_access_token(token):
+        print("PAT saved to the OS credential store.")
+        return 0
+
+    print("Could not save PAT to the OS credential store.")
+    print("Windows Credential Manager cannot store oversized credentials.")
+    print("The fallback stores your PAT in plaintext.")
+    print("Restrict access to your Sandmod directory.")
+
+    if not ask_yes_no("Save PAT to local .env?", default=False):
+        return 1
+
+    try:
+        path = save_env_access_token(app_dir, token)
+    except (OSError, ValueError) as exc:
+        print(f"Could not save PAT: {exc}")
+        return 1
+
+    print(f"PAT saved to {path}")
+    return 0
+
+
 def _configure_settings(reconfigure: bool = False):
     default_platform = "windows" if os.name == "nt" else "linuxserver"
 
@@ -262,12 +350,19 @@ def sandmod_init(
 
     __spacing_please()
 
-    credential_result = _configure_credentials(
+    credential_result = _configure_api_key(
         modio_config,
         reauth=reauth,
     )
     if credential_result != 0:
         return credential_result
+
+    pat_result = _configure_access_token(
+        modio_config,
+        reauth=reauth,
+    )
+    if pat_result != 0:
+        return pat_result
 
     __spacing_please()
     __print_setup_complete()

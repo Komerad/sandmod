@@ -1,3 +1,38 @@
+# Sandmod v0.1.0a5
+
+Alpha release introducing authenticated mod.io subscription discovery and local installation comparison.
+
+### Added
+
+- `subscriptions` command to retrieve and list mods subscribed to by an authenticated mod.io account.
+- `subscriptions --compare` to compare account subscriptions against locally tracked mod installations.
+- Optional mod.io Personal Access Token (PAT) configuration during `init`.
+- Authenticated mod.io API requests with paginated subscription retrieval.
+- Subscription comparison reporting present, missing, quarantined, unknown, and untracked local installations.
+
+### Improvements
+
+- Reuse existing credential storage mechanisms for API keys and PATs.
+- Handle Windows Credential Manager size limitations with an optional plaintext `.env` fallback.
+- Detect incomplete or inconsistent subscription API responses rather than returning partial results.
+- Reorganize CLI command registration and dispatch for maintainability.
+- Update development reset tooling to clear PAT credentials.
+- Expand automated test coverage for authentication, credential persistence, pagination, and subscription comparison.
+
+### Notes
+
+- Subscription discovery is read-only. No mods are installed, removed, quarantined, subscribed, or unsubscribed during comparison.
+- Subscription membership reflects the account associated with the configured PAT, which may differ from the account used by Sandstorm's SDK.
+- Locally installed mods without matching subscriptions are identified for review, not automatically considered safe to remove.
+- Existing mod installation, update, quarantine, and restore behavior remains unchanged.
+
+### Known limitations
+
+- Subscription management, bulk cleanup, and permanent uninstallation are not yet implemented.
+- Large mod.io PATs may exceed Windows Credential Manager storage limits and require the optional plaintext `.env` fallback.
+- Cross-platform compatibility testing remains ongoing.
+
+
 # Sandmod v0.1.0a4
 
 Maintenance release following the initial public alpha.

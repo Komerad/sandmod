@@ -240,8 +240,7 @@ def _configure_access_token(config: ModIOConfig, reauth: bool = False) -> int:
         print("PAT saved to the OS credential store.")
         return 0
 
-    print("Could not save PAT to the OS credential store.")
-    print("Windows Credential Manager cannot store oversized credentials.")
+    print("The OS credential store is unavailable or cannot store this PAT.")
     print("The fallback stores your PAT in plaintext.")
     print("Restrict access to your Sandmod directory.")
 

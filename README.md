@@ -14,6 +14,7 @@ Sandmod is currently in alpha. Prebuilt executables are available for Windows, L
 
 - **Local inspection:** List installed mods, inspect metadata, and identify missing or quarantined installations.
 - **Update checking:** Compare locally recorded mod versions against active mod.io releases.
+- **Subscription visibility:** List an authenticated mod.io account's subscriptions and compare them against locally tracked installations.
 - **Download validation:** Download, verify, and extract mod archives without installing them.
 - **Safe updates:** Stage replacements before updating an existing installation, with rollback and recovery safeguards.
 - **Quarantine and restore:** Temporarily remove a mod from active storage and restore it without changing mod.io SDK metadata.
@@ -25,7 +26,7 @@ Sandmod is currently in alpha. Prebuilt executables are available for Windows, L
 Sandmod is an early CLI alpha, not a replacement for the game's mod.io client.
 
 - Updates support existing, registered installations only.
-- Subscription management, bulk cleanup, and permanent uninstallation are not yet implemented.
+- Subscription discovery is read-only. Subscribing, unsubscribing, bulk cleanup, and permanent uninstallation are not yet implemented.
 - Quarantine does not unsubscribe a mod or edit mod.io's `state.json`. The game may redownload quarantined content.
 - Update checks compare recorded release metadata; they do not verify the integrity of every installed file.
 - Stop the game and any servers sharing the mod storage before modifying installations.
@@ -76,6 +77,7 @@ The setup process will ask for:
 - **Game ID:** Defaults to `254` for Insurgency: Sandstorm
 - **Storage root:** The directory containing your mod.io game storage
 - **mod.io API key:** Obtain one at https://mod.io/me/access
+- **mod.io Personal Access Token (optional):** A read-only PAT enables authenticated subscription discovery and comparison. Obtain one at https://mod.io/me/access.
 
 The storage root must point to an existing installation. Sandmod checks for the expected `state.json` file before accepting the configuration.
 
@@ -93,7 +95,18 @@ C:\Users\Public\mod.io\254\metadata\state.json
 
 Successful setup creates sandmod.toml beside the application: in the repository root when running from source, or beside the executable when using a portable build.
 
-API keys are stored in your operating system's credential store when available. Alternatively, Sandmod can use the `MODIO_API_KEY` environment variable or, with your permission, a local `.env` file.
+Sandmod uses two separate mod.io credentials:
+
+- **API key (`MODIO_API_KEY`):** Used for public mod metadata, downloads, and update checks.
+- **Personal Access Token (`MODIO_ACCESS_TOKEN`):** Optional, used to retrieve subscriptions for the authenticated mod.io account.
+
+Credentials are retrieved from environment variables, the operating system's credential store, or a local `.env` file, in that order.
+
+During `init`, Sandmod validates existing credentials and optionally offers to configure a PAT. If the operating system's credential store cannot save a credential, Sandmod offers a plaintext `.env` fallback with explicit confirmation.
+
+Windows Credential Manager has a credential size limit that may prevent storing large mod.io PATs. The `.env` fallback allows these tokens to be used without modifying them.
+
+Keep credential files private and do not distribute them with Sandmod.
 
 ### 3. Verify your installation
 
@@ -131,6 +144,38 @@ All commands can be run with `python -m sandmod` from the project directory.
 | `restore <mod_id>` | Restore a previously quarantined installation |
 | `restore <mod_id> --dry-run` | Preview restoration |
 | `issues [mod_id]` | Show recorded version-specific compatibility problems |
+| `subscriptions` | List mods subscribed to by the authenticated PAT account |
+| `subscriptions --compare` | Compare subscriptions against locally tracked installations |
+
+
+### Subscription visibility
+
+Sandmod can retrieve subscriptions for a mod.io account using an optional Personal Access Token (PAT).
+
+List the account's subscriptions:
+
+```bash
+python -m sandmod subscriptions
+```
+
+Compare subscriptions against locally tracked installations:
+
+```bash
+python -m sandmod subscriptions --compare
+```
+
+The comparison displays each mod's subscription membership and local installation status, including present, missing, quarantined, unknown, and not-tracked installations.
+
+Mods present locally but absent from the subscription list are shown first to help identify cleanup candidates.
+
+**Important considerations:**
+
+- Subscriptions belong to the account associated with the PAT, which may differ from the account used by Sandstorm's SDK.
+- A mod that is not subscribed may still be required by a server, map rotation, or another installation.
+- Subscription comparison does not download, remove, quarantine, subscribe, or unsubscribe any mods.
+- Sandmod does not modify `state.json` during subscription discovery.
+
+A PAT is not required for normal installation inspection, update checking, or quarantine operations.
 
 
 ### Updating a mod

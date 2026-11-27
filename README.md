@@ -15,9 +15,10 @@ Sandmod is currently in alpha. Prebuilt executables are available for Windows, L
 - **Local inspection:** List installed mods, inspect metadata, and identify missing or quarantined installations.
 - **Update checking:** Compare locally recorded mod versions against active mod.io releases.
 - **Subscription visibility:** List an authenticated mod.io account's subscriptions and compare them against locally tracked installations.
+- **Subscription-aware cleanup:** Identify locally installed mods absent from an authenticated account's subscriptions and selectively quarantine them.
 - **Download validation:** Download, verify, and extract mod archives without installing them.
 - **Safe updates:** Stage replacements before updating an existing installation, with rollback and recovery safeguards.
-- **Quarantine and restore:** Temporarily remove a mod from active storage and restore it without changing mod.io SDK metadata.
+- **Bulk quarantine and restore:** Quarantine one or more mods with previews, confirmation, and recovery safeguards. Restore quarantined mods individually without changing mod.io SDK metadata.
 - **Known compatibility issues:** Identify version-specific problems reported during testing.
 - **Cross-platform builds:** Windows, Linux, and a Debian 12-based build intended for SAW servers.
 
@@ -26,7 +27,8 @@ Sandmod is currently in alpha. Prebuilt executables are available for Windows, L
 Sandmod is an early CLI alpha, not a replacement for the game's mod.io client.
 
 - Updates support existing, registered installations only.
-- Subscription discovery is read-only. Subscribing, unsubscribing, bulk cleanup, and permanent uninstallation are not yet implemented.
+- Subscription discovery and cleanup do not modify mod.io subscriptions. Subscribing, unsubscribing, and permanent uninstallation are not yet implemented.
+- Bulk quarantine is not atomic. If an operation fails, earlier successful quarantines remain in place.
 - Quarantine does not unsubscribe a mod or edit mod.io's `state.json`. The game may redownload quarantined content.
 - Update checks compare recorded release metadata; they do not verify the integrity of every installed file.
 - Stop the game and any servers sharing the mod storage before modifying installations.
@@ -139,13 +141,15 @@ All commands can be run with `python -m sandmod` from the project directory.
 | `stage <mod_id>` | Download, validate, and extract a release without installing |
 | `update <mod_id>` | Update an existing mod installation |
 | `update <mod_id> --force` | Reinstall even when the recorded release is current |
-| `quarantine <mod_id>` | Move a mod out of active storage, preserving recovery metadata |
-| `quarantine <mod_id> --dry-run` | Preview quarantine without changing files |
+| `quarantine <mod_id> [<mod_id> ...]` | Quarantine one or more mods |
+| `quarantine <mod_id> [<mod_id> ...] --dry-run` | Preview quarantine without changing files |
 | `restore <mod_id>` | Restore a previously quarantined installation |
 | `restore <mod_id> --dry-run` | Preview restoration |
 | `issues [mod_id]` | Show recorded version-specific compatibility problems |
 | `subscriptions` | List mods subscribed to by the authenticated PAT account |
 | `subscriptions --compare` | Compare subscriptions against locally tracked installations |
+| `subscriptions --cleanup` | Interactively select local-only mods for quarantine |
+| `subscriptions --cleanup --dry-run` | Preview selected cleanup operations without modifying files |
 
 
 ### Subscription visibility
@@ -176,6 +180,31 @@ Mods present locally but absent from the subscription list are shown first to he
 - Sandmod does not modify `state.json` during subscription discovery.
 
 A PAT is not required for normal installation inspection, update checking, or quarantine operations.
+
+
+### Subscription-aware cleanup
+
+Sandmod can identify locally installed mods that are not subscribed to by the account associated with the configured PAT.
+
+Start interactive cleanup:
+
+```bash
+python -m sandmod subscriptions --cleanup
+```
+
+To preview the operation without modifying files:
+
+```bash
+python -m sandmod subscriptions --cleanup --dry-run
+```
+
+Sandmod displays eligible installations and prompts you to select them by number. Only locally present, unsubscribed installations are eligible; missing, quarantined, and unknown installations are excluded.
+
+Selected mods are validated and previewed before execution. Actual cleanup requires explicit confirmation that Sandstorm and any servers sharing the mod storage are stopped.
+
+Cleanup uses Sandmod's existing reversible quarantine mechanism. It does not delete mods, unsubscribe from mod.io, or modify `state.json`.
+
+**Important:** An unsubscribed mod is not necessarily unused. It may still be required by a server, map rotation, or another installation. Review candidates before quarantining them.
 
 
 ### Updating a mod
@@ -215,6 +244,27 @@ Restore it later:
 ```bash
 python -m sandmod restore 448415
 ```
+
+
+Multiple mods can be quarantined together:
+
+```bash
+python -m sandmod quarantine 123456 234567 --dry-run
+python -m sandmod quarantine 123456 234567
+```
+
+Replace the example IDs with the mods you want to quarantine.
+
+Bulk quarantine validates the entire selection before requesting confirmation. Each mod is then quarantined individually using the existing locking, validation, and recovery safeguards.
+
+**Bulk operations are not atomic.** If a later mod fails, previously completed quarantines remain in place and subsequent mods are not attempted. Sandmod reports the partial result so you can inspect or restore affected installations.
+
+Restore continues to operate on individual mod IDs:
+
+```bash
+python -m sandmod restore 123456
+```
+
 
 Sandmod records the original installation location and refuses to overwrite an existing destination during restoration.
 

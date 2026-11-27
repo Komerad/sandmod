@@ -1,13 +1,19 @@
 import io
+import json
 import sys
+import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
 from sandmod.cli import runner
-from sandmod.cli.commands.subscriptions import sandmod_subscriptions
+from sandmod.cli.commands.subscriptions import (
+    sandmod_subscription_cleanup,
+    sandmod_subscriptions,
+)
 from sandmod.config import GameConfig, ModIOConfig
+from sandmod.game import get_mods_path, get_state_path
 
 
 class SubscriptionCommandTests(unittest.TestCase):
@@ -166,6 +172,110 @@ class SubscriptionComparisonTests(unittest.TestCase):
             self.assertIn("quarantined", rows[300])
             self.assertIn("not tracked", rows[400])
             self.assertIn("yes", rows[400])
+
+
+class SubscriptionCleanupTests(unittest.TestCase):
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+
+        self.root = Path(temp.name)
+        self.mods_root = get_mods_path(254, self.root)
+        self.mods_root.mkdir(parents=True)
+
+        def entry(mod_id):
+            return {
+                "ID": mod_id,
+                "State": 1,
+                "PathOnDisk": str(self.mods_root / str(mod_id)),
+                "Profile": {"name": f"Mod {mod_id}"},
+            }
+
+        # 100 and 400 are present and unsubscribed.
+        # 200 is present and subscribed.
+        # 300 is unsubscribed but missing.
+        for mod_id in (100, 200, 400):
+            (self.mods_root / str(mod_id)).mkdir()
+
+        state_path = get_state_path(254, self.root)
+        state_path.parent.mkdir(parents=True)
+        state_path.write_text(
+            json.dumps({"Mods": [entry(i) for i in (100, 200, 300, 400)]}),
+            encoding="utf-8",
+        )
+
+        self.subscribed = {
+            200: {"id": 200, "name": "Subscribed mod"},
+        }
+
+    def test_dry_run_only_selects_eligible_mods(self):
+        with (
+            patch(
+                "sandmod.cli.commands.subscriptions.get_subscribed_mods",
+                return_value=self.subscribed,
+            ),
+            patch("builtins.input", return_value="1 2"),
+            patch(
+                "sandmod.cli.commands.subscriptions.sandmod_preview_quarantine",
+                return_value=0,
+            ) as preview,
+            patch("sandmod.cli.commands.subscriptions.sandmod_quarantine_many") as execute,
+        ):
+            result = sandmod_subscription_cleanup("test-pat", 254, self.root, dry_run=True)
+
+        self.assertEqual(result, 0)
+        preview.assert_called_once_with(254, self.root, [100, 400])
+        execute.assert_not_called()
+
+    def test_execution_delegates_to_bulk_quarantine(self):
+        with (
+            patch(
+                "sandmod.cli.commands.subscriptions.get_subscribed_mods",
+                return_value=self.subscribed,
+            ),
+            patch("builtins.input", return_value="1"),
+            patch(
+                "sandmod.cli.commands.subscriptions.sandmod_quarantine_many",
+                return_value=0,
+            ) as execute,
+        ):
+            result = sandmod_subscription_cleanup("test-pat", 254, self.root)
+
+        self.assertEqual(result, 0)
+        execute.assert_called_once_with(254, self.root, [100])
+
+    def test_invalid_selection_does_not_execute(self):
+        with (
+            patch(
+                "sandmod.cli.commands.subscriptions.get_subscribed_mods",
+                return_value=self.subscribed,
+            ),
+            patch("builtins.input", return_value="3"),
+            patch("sandmod.cli.commands.subscriptions.sandmod_quarantine_many") as execute,
+        ):
+            result = sandmod_subscription_cleanup("test-pat", 254, self.root)
+
+        self.assertEqual(result, 1)
+        execute.assert_not_called()
+
+    def test_no_candidates_requires_no_input(self):
+        subscribed = {
+            100: {"id": 100},
+            200: {"id": 200},
+            400: {"id": 400},
+        }
+
+        with (
+            patch(
+                "sandmod.cli.commands.subscriptions.get_subscribed_mods",
+                return_value=subscribed,
+            ),
+            patch("builtins.input") as prompt,
+        ):
+            result = sandmod_subscription_cleanup("test-pat", 254, self.root)
+
+        self.assertEqual(result, 0)
+        prompt.assert_not_called()
 
 
 if __name__ == "__main__":

@@ -1,3 +1,38 @@
+# Sandmod v0.1.0a6
+
+Alpha release introducing bulk quarantine and subscription-aware cleanup for Insurgency: Sandstorm mod installations.
+
+### Added
+
+- Support for quarantining multiple mods in a single command, with dry-run previews and explicit confirmation.
+- `subscriptions --cleanup` command to identify and selectively quarantine locally installed mods absent from the authenticated account's subscriptions.
+- `subscriptions --cleanup --dry-run` to preview selected cleanup operations without modifying files.
+- Interactive candidate selection with validation of selected entries.
+
+### Improvements
+
+- Reuse existing quarantine validation, locking, and recovery safeguards for bulk operations.
+- Validate selected installations before executing quarantine operations.
+- Report completed operations and stop execution when a bulk quarantine fails.
+- Exclude missing, quarantined, and unknown installations from subscription-aware cleanup candidates.
+- Expand automated tests for bulk execution, cancellation, invalid selections, partial failures, and CLI dispatch.
+
+### Notes
+
+- Bulk quarantine is not atomic. Previously completed operations remain quarantined if a later operation fails.
+- Cleanup uses reversible filesystem quarantine. No permanent deletion is performed.
+- Mod.io subscriptions and SDK `state.json` metadata remain unchanged.
+- Unsubscribed installations may still be required by servers or map rotations and should be reviewed before quarantine.
+- Existing single-mod quarantine, restore, and installation behavior remains unchanged.
+
+### Known limitations
+
+- Permanent uninstallation, destructive purge, and subscription modification are not yet implemented.
+- Quarantined mods may be redownloaded by Sandstorm when required or subscribed.
+- A graphical interface is planned but not yet available.
+- Cross-platform compatibility testing remains ongoing.
+
+
 # Sandmod v0.1.0a5
 
 Alpha release introducing authenticated mod.io subscription discovery and local installation comparison.

@@ -92,13 +92,26 @@ def _run() -> int:
                 force=args.force,
             )
         case "quarantine":
-            return sandmod_commands.quarantine(
+            if len(args.mod_id) == 1:
+                return sandmod_commands.quarantine(
+                    modio_config.game_id,
+                    game_config.storage_root,
+                    args.mod_id[0],
+                    dry_run=args.dry_run,
+                )
+
+            if args.dry_run:
+                return sandmod_commands.quarantine_preview_many(
+                    modio_config.game_id,
+                    game_config.storage_root,
+                    args.mod_id,
+                )
+
+            return sandmod_commands.quarantine_many(
                 modio_config.game_id,
                 game_config.storage_root,
                 args.mod_id,
-                dry_run=args.dry_run,
             )
-
         case "restore":
             return sandmod_commands.restore(
                 modio_config.game_id,
@@ -108,6 +121,19 @@ def _run() -> int:
             )
         case "subscriptions":
             access_token = __require_access_token(parser)
+            if args.cleanup and args.compare:
+                parser.error("Choose either --compare or --cleanup")
+
+            if args.dry_run and not args.cleanup:
+                parser.error("--dry-run requires --cleanup")
+
+            if args.cleanup:
+                return sandmod_commands.subscription_cleanup(
+                    access_token,
+                    modio_config.game_id,
+                    game_config.storage_root,
+                    dry_run=args.dry_run,
+                )
             return sandmod_commands.subscriptions(
                 access_token,
                 modio_config.game_id,
@@ -186,7 +212,7 @@ def __register_quarantine(commands):
         "quarantine",
         help="Temporarily move an installed mod out of active storage",
     )
-    quarantine.add_argument("mod_id", type=int)
+    quarantine.add_argument("mod_id", type=int, nargs="+")
     quarantine.add_argument("--dry-run", action="store_true")
 
 
@@ -223,6 +249,16 @@ def __register_subscriptions(commands):
         "--compare",
         action="store_true",
         help="Compare subscriptions against locally tracked mods",
+    )
+    subscriptions.add_argument(
+        "--cleanup",
+        action="store_true",
+        help="Select local-only installed mods for quarantine",
+    )
+    subscriptions.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview selected cleanup operations without moving files",
     )
 
 
